@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>لوحة تحكم البائع 🛠️</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      font-family: 'Cairo', sans-serif;
+      background-color: #f5f5f5;
+      margin: 0;
+      padding: 20px;
+      color: #333;
+    }
+
+    /* ---------- top bar ---------- */
+    .topbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 64px;
+      background: linear-gradient(90deg, #ffffffcc, #f0f8ffcc);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 20px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+      z-index: 999;
+      backdrop-filter: blur(4px);
+    }
+    .topbar .title {
+      font-weight: 700;
+      color: #2e7d32;
+      font-size: 1.1rem;
+    }
+    .topbar .profile-area {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .topbar img.top-profile-pic {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid #ddd;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    }
+    .topbar .profile-name {
+      font-size: 0.95rem;
+      color: #444;
+      display: none; /* إذا أردت إظهار الاسم ضع display:block */
+    }
+
+    /* أيقونات الشريط */
+    .icon-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: #ffffff;
+      border: 1px solid #e0e0e0;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+      margin-left: 8px;
+      font-size: 18px;
+    }
+
+    /* قائمة الإعدادات المنبثقة */
+    .settings-menu {
+      position: absolute;
+      top: 68px;
+      right: 20px;
+      background: white;
+      border: 1px solid #e6e6e6;
+      border-radius: 10px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+      padding: 8px;
+      width: 220px;
+      display: none;
+      z-index: 1000;
+    }
+    .settings-menu.show { display: block; }
+    .settings-item {
+      padding: 10px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      color: #333;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .settings-item:hover { background: #f6f9ff; }
+
+    /*modal الطلبات*/
+    .orders-modal {
+      display: none;
+      position: fixed;
+      z-index: 1500;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.45);
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+    .orders-modal.show { display: flex; }
+    .orders-panel {
+      width: 100%;
+      max-width: 1000px;
+      max-height: 86vh;
+      overflow: auto;
+      background: #fff;
+      border-radius: 12px;
+      padding: 18px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+      text-align: right;
+    }
+    .orders-panel h2 { margin-top:0; color:#2e7d32; }
+    .orders-list { display: grid; gap: 12px; }
+    .order-card {
+      border: 1px solid #eee;
+      padding: 12px;
+      border-radius: 10px;
+      background: #fafafa;
+    }
+    .order-meta { font-size: 0.95rem; color:#444; display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
+    .order-items { margin-top:8px; border-top:1px dashed #eee; padding-top:8px; }
+    .order-item { display:flex; justify-content:space-between; gap:12px; padding:6px 0; }
+    .order-actions { margin-top:10px; display:flex; gap:8px; }
+    .small-btn {
+      border: none;
+      padding: 8px 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight:600;
+    }
+    .btn-email { background:#1e88e5; color:#fff; }
+    .btn-call { background:#43a047; color:#fff; }
+    .btn-delete-order { background:#e53935;color:#fff; }
+    .no-orders { text-align:center; padding:24px; color:#777; }
+
+    /* لإزاحة المحتوى قليلاً تحت الشريط */
+    .page-content { padding-top: 88px; }
+
+    h1 {
+      color: #4CAF50;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    /* صف العناوين الأفقي */
+    .titles-row {
+      display: flex;
+      justify-content: center;
+      gap: 18px;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+    }
+    .titles-row .title-pill {
+      background: #fff;
+      padding: 10px 16px;
+      border-radius: 999px;
+      border: 1px solid #e0e0e0;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .titles-row .title-pill:hover {
+      background: #f0fff0;
+    }
+
+    form {
+      background: #fff;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      max-width: 500px;
+      margin: 0 auto 30px;
+    }
+
+    form input, form textarea, form label {
+      width: 100%;
+      margin-bottom: 10px;
+      padding: 10px;
+      font-size: 1em;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      box-sizing: border-box;
+    }
+
+    .file-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .img-preview {
+      max-width: 100%;
+      max-height: 140px;
+      border-radius: 6px;
+      display: block;
+      margin-top: 6px;
+      object-fit: cover;
+    }
+
+    button {
+      padding: 12px 20px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      font-size: 1em;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #388e3c;
+    }
+
+    .product-list {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .product-card {
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      padding: 15px;
+      margin-bottom: 15px;
+    }
+
+    .product-card .card-actions {
+      margin-top: 10px;
+      display: flex;
+      gap: 8px;
+      justify-content: flex-start;
+    }
+
+    .btn-edit {
+      background-color: #1976d2;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .btn-edit:hover { background-color: #115293; }
+
+    .btn-delete {
+      background-color: #e53935;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .btn-delete:hover { background-color: #b71c1c; }
+
+    .section-title {
+      margin: 12px 0 15px;
+      font-size: 1.1em;
+      color: #444;
+      text-align: center;
+    }
+
+    /* اجعل الحاوية تعرض المنتجات في صف أفقي */
+    #productContainer {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 8px 0;
+    }
+
+    /* حجم موحد لكل بطاقة حتى تبدو مثل شبكة أفقية */
+    .product-card {
+      width: 240px;
+      flex: 0 0 240px;
+      margin: 0 8px 16px 8px;
+      box-sizing: border-box;
+    }
+
+    /* ضبط الصورة داخل البطاقة لتناسب العرض */
+    .product-card img {
+      width: 100%;
+      height: 150px;
+      object-fit: cover;
+      display: block;
+      border-radius: 6px;
+    }
+
+    /* تنقل سلس عند الضغط على العنوان */
+    html {
+      scroll-behavior: smooth;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- الشريط العلوي مع صورة الملف الشخصي وزر الإعدادات -->
+  <div class="topbar" role="navigation" aria-label="Top bar">
+    <div class="title">لوحة تحكم البائع</div>
+    <div style="display:flex; align-items:center; gap:8px;">
+      <!-- أيقونة الرسائل -->
+      <div class="icon-btn" id="messagesBtn" title="عرض الطلبات" onclick="window.location.href='messages.html'">✉️</div>
+
+      <div class="settings-btn" id="settingsBtn" title="إعدادات التطبيق (اضغط)">
+        ⚙️
+      </div>
+
+      <div class="profile-area" title="اضغط لتغيير صورة البروفايل">
+        <!-- صورة صغيرة قابلة للنقر لتغيير الصورة -->
+        <img id="topProfilePic" class="top-profile-pic" src="default.jpg" alt="صورة البروفايل">
+        <div class="profile-name">البائع</div>
+      </div>
+    </div>
+
+    <!-- قائمة الإعدادات المنبثقة (عناصر التنقل المطلوبة) -->
+    <div class="settings-menu" id="settingsMenu" aria-hidden="true">
+      <div class="settings-item" data-target="#addSection">➕ إضافة منتج</div>
+      <div class="settings-item" data-target="#productsSection">📦 المنتجات المضافة</div>
+      <div class="settings-item" id="openLeaderboard">🏆 ترتيب المشتريين</div>
+    </div>
+  </div>
+
+  <!-- نافذة الطلبات (modal) -->
+  <div class="orders-modal" id="ordersModal" aria-hidden="true">
+    <div class="orders-panel" role="dialog" aria-modal="true" aria-labelledby="ordersTitle">
+      <h2 id="ordersTitle">📥 قائمة الطلبات</h2>
+      <div id="ordersContainer" class="orders-list"></div>
+
+      <div style="text-align:left; margin-top:12px;">
+        <button class="small-btn btn-delete-order" id="clearOrdersBtn">حذف جميع الطلبات</button>
+        <button class="small-btn" id="closeOrdersBtn" style="background:#ddd;">إغلاق</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- المحتوى الرئيسي مع إزاحة بسبب الشريط -->
+  <div class="page-content">
+    <h1 style="margin-top:0;">لوحة تحكم البائع</h1>
+
+    <!-- صف العناوين الأفقي -->
+    <div class="titles-row" aria-hidden="false">
+      <div class="title-pill" data-target="#addSection">إضافة منتج</div>
+      <div class="title-pill" data-target="#productsSection">المنتجات المضافة</div>
+      <!-- فتح leaderboard.html مباشرة عند الضغط -->
+      <div class="title-pill" onclick="window.location.href='leaderboard.html'">ترتيب المشتريين</div>
+    </div>
+
+    <section id="addSection">
+      <form id="addProductForm" autocomplete="off">
+        <h3 class="section-title">إضافة منتج</h3>
+        <input type="text" id="productName" placeholder="اسم المنتج" required />
+
+        <!-- حقل ملف لاختيار صورة من الجهاز فقط -->
+        <label for="productFile" style="cursor:pointer;">اختر صورة من جهازك (اختياري)</label>
+        <div class="file-row">
+          <input type="file" id="productFile" accept="image/*" />
+        </div>
+        <img id="previewImg" class="img-preview" style="display:none;" alt="معاينة الصورة">
+
+        <input type="number" id="productPrice" placeholder="السعر بالدج" required />
+        <textarea id="productDesc" placeholder="وصف المنتج" required></textarea>
+        <button type="submit" id="submitBtn">إضافة المنتج</button>
+      </form>
+    </section>
+
+    <section id="productsSection" class="product-list">
+      <h3 class="section-title">المنتجات المضافة</h3>
+      <div id="productContainer"></div>
+    </section>
+
+    <!-- قسم تغيير صورة البروفايل (واحد فقط، منظم) -->
+    <section style="max-width:500px; margin:20px auto; background:#fff; padding:15px; border-radius:10px; text-align:center;">
+      <h3 class="section-title">تغيير صورة البروفايل</h3>
+      <img id="profilePicPreview" src="" style="display:block; margin:10px auto; max-width:150px; border-radius:50%; object-fit:cover;">
+      
+      <!-- زر تغيير الصورة -->
+      <button id="changeProfileBtn" style="padding:10px 20px; background-color:#1976d2; color:white; border:none; border-radius:6px; cursor:pointer;">
+        تغيير الصورة 📷
+      </button>
+      
+      <!-- حقل اختيار الصورة (مخفي) -->
+      <input type="file" id="profilePicInput" accept="image/*" style="display:none;">
+    </section>
+  </div>
+
+  <script>
+    // ---- عناصر المنتجات ----
+    const form = document.getElementById('addProductForm');
+    const productContainer = document.getElementById('productContainer');
+    const submitBtn = document.getElementById('submitBtn');
+
+    const fileInput = document.getElementById('productFile');
+    const previewImg = document.getElementById('previewImg');
+
+    let editingIndex = null;
+    let selectedImageDataUrl = null; // تخزين مؤقت لصورة base64 إن اختيرت
+
+    // دالة مساعدة لتجنّب XSS عند إدراج نص من التخزين
+    function escapeHtml(text) {
+      if (text === null || text === undefined) return "";
+      return String(text)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    // قراءة ملف الصورة وعرض المعاينة للمنتج
+    fileInput.addEventListener('change', function () {
+      const file = this.files[0];
+      if (!file) {
+        selectedImageDataUrl = null;
+        previewImg.style.display = 'none';
+        return;
+      }
+      if (!file.type.startsWith('image/')) {
+        alert('الرجاء اختيار ملف صورة صالح.');
+        fileInput.value = '';
+        selectedImageDataUrl = null;
+        previewImg.style.display = 'none';
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        selectedImageDataUrl = e.target.result; // data URL
+        previewImg.src = selectedImageDataUrl;
+        previewImg.style.display = 'block';
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // تحميل المنتجات من localStorage وعرضها
+    function loadProducts() {
+      const products = JSON.parse(localStorage.getItem('products')) || [];
+      productContainer.innerHTML = "";
+      products.forEach((product, index) => {
+        const imgSrc = product.image ? product.image : '';
+        productContainer.innerHTML += `
+          <div class="product-card" data-index="${index}">
+            <h4>${escapeHtml(product.name)}</h4>
+            ${imgSrc ? `<img src="${escapeHtml(imgSrc)}" alt="product">` : ''}
+            <p>السعر: ${product.price} دج</p>
+            <p>${escapeHtml(product.desc)}</p>
+            <div class="card-actions">
+              <button class="btn-edit" data-action="edit" data-index="${index}">تعديل</button>
+              <button class="btn-delete" data-action="delete" data-index="${index}">حذف</button>
+            </div>
+          </div>
+        `;
+      });
+
+      // ربط أزرار التعديل والحذف بعد الإنشاء
+      document.querySelectorAll('[data-action="edit"]').forEach(btn =>
+        btn.addEventListener('click', onEdit)
+      );
+      document.querySelectorAll('[data-action="delete"]').forEach(btn =>
+        btn.addEventListener('click', onDelete)
+      );
+    }
+
+    // إضافة منتج جديد أو حفظ التعديل
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      const name = document.getElementById('productName').value.trim();
+      const price = parseFloat(document.getElementById('productPrice').value);
+      const desc = document.getElementById('productDesc').value.trim();
+
+      if (!name || isNaN(price)) {
+        alert("يرجى ملء الحقول بشكل صحيح.");
+        return;
+      }
+
+      // سنحفظ الصورة إذا تم اختيارها كـ data URL، وإلا نحفظ سلسلة فارغة
+      let imageToSave = '';
+      if (selectedImageDataUrl) {
+        imageToSave = selectedImageDataUrl;
+      } else {
+        imageToSave = '';
+      }
+
+      const newProduct = { name, image: imageToSave, price, desc };
+
+      const products = JSON.parse(localStorage.getItem('products')) || [];
+
+      if (editingIndex === null) {
+        products.push(newProduct);
+      } else {
+        products[editingIndex] = newProduct;
+        editingIndex = null;
+        submitBtn.textContent = "إضافة المنتج";
+      }
+
+      localStorage.setItem('products', JSON.stringify(products));
+
+      // إعادة تهيئة الحقول والمعاينة
+      form.reset();
+      selectedImageDataUrl = null;
+      previewImg.style.display = 'none';
+      fileInput.value = '';
+
+      loadProducts();
+
+      // التمرير إلى قسم المنتجات بعد الإضافة/التعديل
+      const productsSection = document.querySelector('[data-target="#productsSection"]');
+      if (productsSection) productsSection.scrollIntoView({behavior: 'smooth'});
+    });
+
+    // حدث التعديل: تعبئة النموذج بقيم المنتج وتعيين editingIndex
+    function onEdit(e) {
+      const index = parseInt(e.currentTarget.getAttribute('data-index'));
+      const products = JSON.parse(localStorage.getItem('products')) || [];
+      const p = products[index];
+      if (!p) return alert("المنتج غير موجود.");
+
+      document.getElementById('productName').value = p.name;
+      document.getElementById('productPrice').value = p.price;
+      document.getElementById('productDesc').value = p.desc;
+
+      // التعامل مع الصورة: إن كانت data URL نعرضها في المعاينة، وإلا نترك المعاينة فارغة
+      if (p.image && p.image.startsWith('data:')) {
+        selectedImageDataUrl = p.image;
+        previewImg.src = selectedImageDataUrl;
+        previewImg.style.display = 'block';
+        fileInput.value = '';
+      } else {
+        selectedImageDataUrl = null;
+        previewImg.style.display = 'none';
+        fileInput.value = '';
+      }
+
+      editingIndex = index;
+      submitBtn.textContent = "حفظ التعديل";
+      // التمرير إلى النموذج لتسهيل التعديل
+      document.getElementById('productName').scrollIntoView({behavior: 'smooth'});
+    }
+
+    // حدث الحذف: إزالة المنتج من التخزين
+    function onDelete(e) {
+      const index = parseInt(e.currentTarget.getAttribute('data-index'));
+      if (!confirm("هل تريد حذف هذا المنتج؟")) return;
+      const products = JSON.parse(localStorage.getItem('products')) || [];
+      products.splice(index, 1);
+      localStorage.setItem('products', JSON.stringify(products));
+      loadProducts();
+    }
+
+    // ربط سلوك العناوين الأفقية (التمرير)
+    document.querySelectorAll('.title-pill').forEach(pill => {
+      pill.addEventListener('click', () => {
+        const target = pill.getAttribute('data-target');
+        const el = document.querySelector(target);
+        if (el) el.scrollIntoView({behavior: 'smooth'});
+      });
+    });
+
+    // تحميل المنتجات عند فتح الصفحة
+    loadProducts();
+
+    // ---- عناصر تغيير صورة البروفايل ----
+    const profilePicInput = document.getElementById('profilePicInput');
+    const profilePicPreview = document.getElementById('profilePicPreview');
+    const changeProfileBtn = document.getElementById('changeProfileBtn');
+    const topProfilePic = document.getElementById('topProfilePic');
+
+    // عرض الصورة المحفوظة عند فتح الصفحة
+    function loadProfilePic() {
+      const savedPic = localStorage.getItem('storeProfilePic');
+      if (savedPic) {
+        profilePicPreview.src = savedPic;
+        profilePicPreview.style.display = 'block';
+        topProfilePic.src = savedPic;
+      } else {
+        // صورة افتراضية (يمكن تغييره)
+        profilePicPreview.src = 'default.jpg';
+        topProfilePic.src = 'default.jpg';
+      }
+    }
+
+    window.addEventListener('load', loadProfilePic);
+
+    // عند الضغط على الزر نفتح اختيار الملف
+    changeProfileBtn.addEventListener('click', () => {
+      profilePicInput.click();
+    });
+
+    // عند الضغط على الصورة العلوية أيضاً نفتح اختيار الملف
+    topProfilePic.addEventListener('click', () => {
+      profilePicInput.click();
+    });
+
+    // عند اختيار صورة جديدة
+    profilePicInput.addEventListener('change', function () {
+      const file = this.files[0];
+      if (!file) return;
+      if (!file.type.startsWith('image/')) {
+        alert("الرجاء اختيار صورة صحيحة.");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const imgData = e.target.result;
+        profilePicPreview.src = imgData;
+        profilePicPreview.style.display = 'block';
+        topProfilePic.src = imgData;
+        localStorage.setItem('storeProfilePic', imgData);
+        alert("✅ تم تغيير صورة البروفايل بنجاح");
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // ---- إعدادات القائمة (زر الإعدادات المنبثق) ----
+    const settingsBtn = document.getElementById('settingsBtn');
+    const settingsMenu = document.getElementById('settingsMenu');
+    const settingsItems = settingsMenu.querySelectorAll('.settings-item');
+    const openLeaderboard = document.getElementById('openLeaderboard');
+
+    // تبديل عرض القائمة
+    settingsBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      settingsMenu.classList.toggle('show');
+      settingsMenu.setAttribute('aria-hidden', settingsMenu.classList.contains('show') ? 'false' : 'true');
+    });
+
+    // إغلاق القائمة عند النقر في أي مكان خارجها
+    document.addEventListener('click', (ev) => {
+      if (!settingsMenu.contains(ev.target) && ev.target !== settingsBtn) {
+        settingsMenu.classList.remove('show');
+        settingsMenu.setAttribute('aria-hidden', 'true');
+      }
+    });
+
+    // ربط عناصر القائمة: تمرير إلى الأقسام أو فتح leaderboard
+    settingsItems.forEach(item => {
+      item.addEventListener('click', () => {
+        const target = item.getAttribute('data-target');
+        if (target) {
+          const el = document.querySelector(target);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth' });
+          }
+        }
+        settingsMenu.classList.remove('show');
+        settingsMenu.setAttribute('aria-hidden', 'true');
+      });
+    });
+
+    openLeaderboard.addEventListener('click', () => {
+      // فتح leaderboard.html كما في الزر الأصلي
+      window.location.href = 'leaderboard.html';
+    });
+
+    // ---- الرسائل / عرض الطلبات ----
+    const messagesBtn = document.getElementById('messagesBtn');
+    const ordersModal = document.getElementById('ordersModal');
+    const ordersContainer = document.getElementById('ordersContainer');
+    const closeOrdersBtn = document.getElementById('closeOrdersBtn');
+    const clearOrdersBtn = document.getElementById('clearOrdersBtn');
+
+    // تعديل: عند الضغط على أيقونة الرسائل، يتم فتح صفحة messages.html مباشرة
+   
+  document.getElementById("messagesBtn").addEventListener("click", () => {
+    window.location.href = "messages.html";
+  });
+
+
+    // دالة لتهيئة عرض الطلبات (تم الاحتفاظ بها للتوافق مع الأكواد الأخرى)
+    function renderOrders() {
+      ordersContainer.innerHTML = '';
+      // نبحث أولًا عن مصفوفة 'orders' في localStorage
+      const orders = JSON.parse(localStorage.getItem('orders')) || null;
+
+      if (orders && Array.isArray(orders) && orders.length > 0) {
+        // عرض كل طلب
+        orders.slice().reverse().forEach(order => { // عرض أحدث أولاً
+          const card = document.createElement('div');
+          card.className = 'order-card';
+          const dt = order.date ? new Date(order.date).toLocaleString('ar-EG') : '';
+          const itemsHtml = (order.items || []).map(it =>
+            `<div class="order-item"><div>${escapeHtml(it.name)}</div><div>${it.price} دج</div></div>`
+          ).join('');
+          card.innerHTML = `
+            <div class="order-meta">
+              <strong>${escapeHtml(order.name || '—')}</strong>
+              <span>•</span>
+              <span>الهاتف: <a href="tel:${encodeURIComponent(order.phone || '')}">${escapeHtml(order.phone || '—')}</a></span>
+              <span>•</span>
+              <span>التاريخ: ${escapeHtml(dt)}</span>
+            </div>
+            <div style="margin-top:8px;"><strong>العنوان:</strong> ${escapeHtml(order.address || '—')}</div>
+            <div style="margin-top:6px;"><strong>البريد:</strong> ${escapeHtml(order.email || '—')}</div>
+            <div class="order-items">
+              ${itemsHtml || '<div style="color:#777;padding:6px 0">لا توجد عناصر مفصّلة</div>'}
+            </div>
+            <div style="margin-top:8px; display:flex; justify-content:space-between; align-items:center;">
+              <div><strong>المجموع:</strong> ${escapeHtml(String(order.total || 0))} دج</div>
+              <div><strong>النقاط:</strong> ${escapeHtml(String(order.points || 0))}</div>
+            </div>
+            <div class="order-actions">
+              <button class="small-btn btn-email" onclick="location.href='mailto:${encodeURIComponent(order.email || '')}?subject=${encodeURIComponent('استفسار حول طلبك')}';">بريد</button>
+              <button class="small-btn btn-call" onclick="location.href='tel:${encodeURIComponent(order.phone || '')}';">اتصال</button>
+              <button class="small-btn btn-delete-order" onclick="deleteOrder('${order.id}');">حذف</button>
+            </div>
+          `;
+          ordersContainer.appendChild(card);
+        });
+      } else {
+        // إن لم توجد مصفوفة orders، نحاول استخدام user_data مع user_points للشهر الحالي كنسخة احتياط
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const pointsKey = `user_points_${year}_${month}`;
+        const allPoints = JSON.parse(localStorage.getItem(pointsKey)) || {};
+        const allUsersData = JSON.parse(localStorage.getItem('user_data')) || {};
+
+        const users = Object.keys(allUsersData || {});
+        if (users.length === 0) {
+          ordersContainer.innerHTML = `<div class="no-orders">📭 لا توجد طلبات محفوظة حالياً.</div>`;
+        } else {
+          users.forEach(name => {
+            const info = allUsersData[name] || {};
+            const pts = allPoints[name] || 0;
+            const card = document.createElement('div');
+            card.className = 'order-card';
+            card.innerHTML = `
+              <div class="order-meta"><strong>${escapeHtml(info.name || name)}</strong> <span>•</span> <span>الهاتف: <a href="tel:${encodeURIComponent(info.phone || '')}">${escapeHtml(info.phone || '—')}</a></span></div>
+              <div style="margin-top:8px;"><strong>العنوان:</strong> ${escapeHtml(info.address || '—')}</div>
+              <div style="margin-top:6px;"><strong>البريد:</strong> ${escapeHtml(info.email || '—')}</div>
+              <div style="margin-top:8px;"><strong>نقاط هذا الشهر:</strong> ${escapeHtml(String(pts))}</div>
+              <div class="order-actions">
+                <button class="small-btn btn-email" onclick="location.href='mailto:${encodeURIComponent(info.email || '')}?subject=${encodeURIComponent('استفسار حول حسابك')}';">بريد</button>
+                <button class="small-btn btn-call" onclick="location.href='tel:${encodeURIComponent(info.phone || '')}';">اتصال</button>
+              </div>
+            `;
+            ordersContainer.appendChild(card);
+          });
+        }
+      }
+    }
+
+    // حذف طلب بعينه (باستخدام id)
+    function deleteOrder(id) {
+      if (!confirm('هل تريد حذف هذا الطلب؟')) return;
+      const orders = JSON.parse(localStorage.getItem('orders')) || [];
+      const updated = orders.filter(o => o.id !== id);
+      localStorage.setItem('orders', JSON.stringify(updated));
+      renderOrders();
+    }
+
+    // مسح جميع الطلبات
+    clearOrdersBtn.addEventListener('click', () => {
+      if (!confirm('تحذير: سيتم حذف جميع الطلبات. هل تريد الاستمرار؟')) return;
+      localStorage.removeItem('orders');
+      renderOrders();
+    });
+
+    // إغلاق عند النقر خارج اللوحة
+    ordersModal.addEventListener('click', (ev) => {
+      if (ev.target === ordersModal) {
+        ordersModal.classList.remove('show');
+        ordersModal.setAttribute('aria-hidden', 'true');
+      }
+    });
+
+    // --- نهاية نظام الرسائل/الطلبات ---
+    // زر حذف كل الطلبات
+    document.getElementById('deleteAllOrdersBtn').addEventListener('click', () => {
+      if (confirm("هل أنت متأكد من حذف جميع الطلبات؟")) {
+        localStorage.removeItem('orders'); // حذف الطلبات من التخزين
+        displayOrders(); // تحديث العرض
+      }
+    });
+  </script>
+
+</body>
+</html>
