@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>سلة التسوق 🛒</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: 'Cairo', sans-serif;
+      background-color: #f5f5f5;
+      margin: 0;
+      padding: 20px;
+      color: #333;
+    }
+    h1 {
+      color: #4CAF50;
+      text-align: center;
+    }
+    .cart-items {
+      background: white;
+      padding: 15px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .cart-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid #eee;
+      align-items: center;
+    }
+    .item-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .item-quantity {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .quantity-btn {
+      width: 25px;
+      height: 25px;
+      border-radius: 50%;
+      border: 1px solid #ddd;
+      background: white;
+      cursor: pointer;
+    }
+    .total {
+      font-weight: bold;
+      text-align: left;
+      margin-top: 10px;
+    }
+    form {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    form input, form textarea {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 10px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      box-sizing: border-box;
+    }
+    button {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      width: 100%;
+      font-size: 16px;
+    }
+    button:hover {
+      background-color: #388E3C;
+    }
+    .empty-cart {
+      text-align: center;
+      padding: 20px;
+      color: #777;
+    }
+    .back-btn {
+      background-color: #f44336;
+      margin-bottom: 15px;
+    }
+    .back-btn:hover {
+      background-color: #d32f2f;
+    }
+    .action-buttons {
+      display: flex;
+      gap: 5px;
+    }
+    .edit-btn {
+      background-color: #2196F3;
+      padding: 5px 10px;
+      font-size: 14px;
+      width: auto;
+    }
+    .edit-btn:hover {
+      background-color: #0b7dda;
+    }
+    .remove-btn {
+      background-color: #f44336;
+      padding: 5px 10px;
+      font-size: 14px;
+      width: auto;
+    }
+    .remove-btn:hover {
+      background-color: #d32f2f;
+    }
+    .quantity-controls {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .quantity-input {
+      width: 40px;
+      text-align: center;
+      padding: 5px;
+    }
+  </style>
+</head>
+<body>
+  <button class="back-btn" onclick="window.location.href='index.html'">← العودة إلى المتجر</button>
+  <h1>سلة التسوق 🛒</h1>
+  
+  <div class="cart-items" id="cartItems">
+    <!-- سيتم ملؤها بالجافاسكريبت -->
+  </div>
+  
+  <form id="checkoutForm">
+    <h3>معلومات العميل</h3>
+    <input type="text" id="name" placeholder="الاسم الكامل" required>
+    <input type="tel" id="phone" placeholder="رقم الهاتف" required>
+    <input type="email" id="email" placeholder="البريد الإلكتروني (اختياري)">
+    <textarea id="address" placeholder="العنوان بالتفصيل" required></textarea>
+    
+    <button type="submit" id="checkoutBtn">إتمام الطلب</button>
+  </form>
+
+  <script>
+    // تحميل المنتجات من السلة المحلية
+    function loadCart() {
+      const cart = JSON.parse(localStorage.getItem('cart')) || [];
+      const cartItemsEl = document.getElementById('cartItems');
+      
+      if (cart.length === 0) {
+        cartItemsEl.innerHTML = '<div class="empty-cart">سلة التسوق فارغة</div>';
+        return { items: [], total: 0, points: 0 };
+      }
+
+      // تجميع العناصر حسب الاسم والسعر
+      const groupedItems = {};
+      cart.forEach(item => {
+        const key = `${item.name}_${item.price}`;
+        if (!groupedItems[key]) {
+          groupedItems[key] = { ...item, quantity: 1 };
+        } else {
+          groupedItems[key].quantity++;
+        }
+      });
+
+      const groupedItemsArray = Object.values(groupedItems);
+
+      let html = '';
+      let total = 0;
+      let points = 0;
+
+      groupedItemsArray.forEach(item => {
+        const itemTotal = item.price * item.quantity;
+        total += itemTotal;
+        points += Math.floor(itemTotal / 1000);
+
+        html += `
+          <div class="cart-item" data-id="${item.id}" data-name="${item.name}" data-price="${item.price}">
+            <div class="item-info">
+              <span>${item.name}</span>
+            </div>
+            <div class="item-quantity">
+              <span class="quantity-display">${item.quantity} × ${item.price} دج</span>
+              <div class="quantity-controls" style="display:none;">
+                <button class="quantity-btn minus-btn">-</button>
+                <input type="number" class="quantity-input" value="${item.quantity}" min="1">
+                <button class="quantity-btn plus-btn">+</button>
+              </div>
+            </div>
+            <div class="item-total">${itemTotal} دج</div>
+            <div class="action-buttons">
+              <button class="edit-btn">تعديل</button>
+              <button class="remove-btn">حذف</button>
+            </div>
+          </div>
+        `;
+      });
+
+      html += `<div class="total">المجموع: ${total} دج</div>`;
+      cartItemsEl.innerHTML = html;
+
+      // إضافة معالجات الأحداث لأزرار التعديل والحذف
+      setupItemControls();
+
+      return { items: groupedItemsArray, total, points };
+    }
+
+    // إعداد معالجات الأحداث للعناصر
+    function setupItemControls() {
+      document.querySelectorAll('.edit-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+          const itemElement = this.closest('.cart-item');
+          const displayElement = itemElement.querySelector('.quantity-display');
+          const controlsElement = itemElement.querySelector('.quantity-controls');
+          
+          if (controlsElement.style.display === 'none') {
+            controlsElement.style.display = 'flex';
+            displayElement.style.display = 'none';
+            this.textContent = 'حفظ';
+          } else {
+            const newQuantity = parseInt(itemElement.querySelector('.quantity-input').value);
+            if (newQuantity > 0) {
+              updateCartItem(
+                itemElement.dataset.id,
+                itemElement.dataset.name,
+                parseFloat(itemElement.dataset.price),
+                newQuantity
+              );
+              controlsElement.style.display = 'none';
+              displayElement.style.display = 'inline';
+              displayElement.textContent = `${newQuantity} × ${itemElement.dataset.price} دج`;
+              this.textContent = 'تعديل';
+              // تحديث الإجمالي
+              const itemTotal = newQuantity * parseFloat(itemElement.dataset.price);
+              itemElement.querySelector('.item-total').textContent = `${itemTotal} دج`;
+              // إعادة حساب المجموع الكلي
+              updateTotal();
+            } else {
+              alert('الكمية يجب أن تكون على الأقل 1');
+            }
+          }
+        });
+      });
+
+      document.querySelectorAll('.remove-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          const itemElement = this.closest('.cart-item');
+          if (confirm('هل أنت متأكد من حذف هذا العنصر من السلة؟')) {
+            removeCartItem(
+              itemElement.dataset.id,
+              itemElement.dataset.name,
+              parseFloat(itemElement.dataset.price)
+            );
+            itemElement.remove();
+            updateTotal();
+          }
+        });
+      });
+
+      document.querySelectorAll('.plus-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          const input = this.parentElement.querySelector('.quantity-input');
+          input.value = parseInt(input.value) + 1;
+        });
+      });
+
+      document.querySelectorAll('.minus-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          const input = this.parentElement.querySelector('.quantity-input');
+          if (parseInt(input.value) > 1) {
+            input.value = parseInt(input.value) - 1;
+          }
+        });
+      });
+    }
+
+    // تحديث عنصر في السلة
+    function updateCartItem(id, name, price, newQuantity) {
+      let cart = JSON.parse(localStorage.getItem('cart')) || [];
+      
+      // إزالة جميع العناصر المطابقة
+      cart = cart.filter(item => !(item.id === id && item.name === name && item.price === price));
+      
+      // إضافة العناصر الجديدة بالكمية المحدثة
+      for (let i = 0; i < newQuantity; i++) {
+        cart.push({ id, name, price });
+      }
+      
+      localStorage.setItem('cart', JSON.stringify(cart));
+    }
+
+    // إزالة عنصر من السلة
+    function removeCartItem(id, name, price) {
+      let cart = JSON.parse(localStorage.getItem('cart')) || [];
+      cart = cart.filter(item => !(item.id === id && item.name === name && item.price === price));
+      localStorage.setItem('cart', JSON.stringify(cart));
+      
+      // إذا كانت السلة فارغة، عرض رسالة
+      if (cart.length === 0) {
+        document.getElementById('cartItems').innerHTML = '<div class="empty-cart">سلة التسوق فارغة</div>';
+      }
+    }
+
+    // تحديث المجموع الكلي
+    function updateTotal() {
+      const cartItems = document.querySelectorAll('.cart-item:not(.total)');
+      let total = 0;
+      
+      cartItems.forEach(item => {
+        const price = parseFloat(item.dataset.price);
+        const quantity = parseInt(item.querySelector('.quantity-display').textContent);
+        total += price * quantity;
+      });
+      
+      document.querySelector('.total').textContent = `المجموع: ${total} دج`;
+    }
+
+    // تنفيذ عند إتمام الطلب
+    document.getElementById('checkoutForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      const cartData = loadCart();
+      if (cartData.items.length === 0) {
+        alert('سلة التسوق فارغة!');
+        return;
+      }
+
+      const name = document.getElementById('name').value.trim();
+      const phone = document.getElementById('phone').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const address = document.getElementById('address').value.trim();
+
+      if (!name || !phone || !address) {
+        alert('الرجاء ملء الحقول المطلوبة');
+        return;
+      }
+
+      const order = {
+        id: Date.now().toString(),
+        name,
+        phone,
+        email: email || 'غير محدد',
+        address,
+        items: cartData.items,
+        total: cartData.total,
+        points: cartData.points,
+        date: new Date().toISOString()
+      };
+
+      // حفظ الطلب في localStorage
+      const orders = JSON.parse(localStorage.getItem('orders')) || [];
+      orders.push(order);
+      localStorage.setItem('orders', JSON.stringify(orders));
+
+      // تحديث نقاط الزبون
+      updateUserPoints(name, phone, email, address, cartData.points);
+
+      // تفريغ السلة
+      localStorage.removeItem('cart');
+
+      alert('تم إتمام الطلب بنجاح! شكراً لشرائك معنا.');
+      window.location.href = 'index.html';
+    });
+
+    // حفظ بيانات المستخدم وتحديث نقاطه
+    function updateUserPoints(name, phone, email, address, pointsToAdd) {
+      const userData = JSON.parse(localStorage.getItem('user_data')) || {};
+      userData[name] = { name, phone, email, address };
+      localStorage.setItem('user_data', JSON.stringify(userData));
+
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const pointsKey = `user_points_${year}_${month}`;
+
+      const monthlyPoints = JSON.parse(localStorage.getItem(pointsKey)) || {};
+      monthlyPoints[name] = (monthlyPoints[name] || 0) + pointsToAdd;
+      localStorage.setItem(pointsKey, JSON.stringify(monthlyPoints));
+    }
+
+    // تحميل السلة عند فتح الصفحة
+    loadCart();
+  </script>
+</body>
+</html>

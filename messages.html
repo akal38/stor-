@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>طلبات العملاء</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: 'Tajawal', Arial, sans-serif;
+      background-color: #f5f5f5;
+      margin: 0;
+      padding: 20px;
+      color: #333;
+    }
+    
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    
+    h1 {
+      color: #2e7d32;
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    
+    .order-card {
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      padding: 20px;
+      margin-bottom: 25px;
+      border: 1px solid #e0e0e0;
+    }
+    
+    .order-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .order-id {
+      font-weight: bold;
+      color: #2e7d32;
+      font-size: 1.2em;
+    }
+    
+    .order-date {
+      color: #666;
+      font-size: 0.9em;
+    }
+    
+    .customer-info {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    
+    .info-group {
+      margin-bottom: 10px;
+    }
+    
+    .info-label {
+      font-weight: bold;
+      color: #555;
+      margin-bottom: 5px;
+      display: block;
+    }
+    
+    .info-value {
+      color: #333;
+      padding: 8px 12px;
+      background: #f9f9f9;
+      border-radius: 6px;
+    }
+    
+    .info-value.unavailable {
+      color: #999;
+      font-style: italic;
+    }
+    
+    .order-summary {
+      background: #f8f8f8;
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 20px;
+    }
+    
+    .items-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+    
+    .items-table th {
+      background: #2e7d32;
+      color: white;
+      padding: 10px;
+      text-align: right;
+    }
+    
+    .items-table td {
+      padding: 10px;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .items-table tr:nth-child(even) {
+      background: #f9f9f9;
+    }
+    
+    .total-row {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 15px;
+      padding-top: 15px;
+      border-top: 1px solid #ddd;
+      font-weight: bold;
+      font-size: 1.1em;
+    }
+    
+    .actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+      justify-content: flex-end;
+    }
+    
+    .btn {
+      padding: 8px 16px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    
+    .btn-email {
+      background: #1e88e5;
+      color: white;
+    }
+    
+    .btn-call {
+      background: #43a047;
+      color: white;
+    }
+    
+    .btn-delete {
+      background: #e53935;
+      color: white;
+    }
+    
+    .no-orders {
+      text-align: center;
+      padding: 40px;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    .no-orders p {
+      color: #666;
+      font-size: 1.1em;
+    }
+    
+    .status-badge {
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 0.8em;
+      font-weight: bold;
+    }
+    
+    .status-new {
+      background: #ffeb3b;
+      color: #333;
+    }
+    
+    .status-completed {
+      background: #4caf50;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📋 طلبات العملاء</h1>
+    
+    <div id="ordersContainer">
+      <!-- سيتم ملؤها بالطلبات عبر JavaScript -->
+    </div>
+  </div>
+
+  <script>
+    // دالة لتجنب هجمات XSS
+    function escapeHtml(text) {
+      if (!text) return "";
+      return text.toString()
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    // دالة لعرض الطلبات
+    function renderOrders() {
+      const container = document.getElementById("ordersContainer");
+      const orders = JSON.parse(localStorage.getItem("orders")) || [];
+      
+      if (orders.length === 0) {
+        container.innerHTML = `
+          <div class="no-orders">
+            <h3>📭 لا توجد طلبات حالياً</h3>
+            <p>سيتم عرض الطلبات الجديدة هنا تلقائياً</p>
+          </div>
+        `;
+        return;
+      }
+
+      // عرض الطلبات من الأحدث إلى الأقدم
+      let ordersHtml = "";
+      orders.reverse().forEach((order, index) => {
+        const orderDate = order.date ? new Date(order.date).toLocaleString('ar-EG') : 'غير معروف';
+        const orderId = order.id || `order-${Date.now()}-${index}`;
+        
+        // معالجة البيانات غير المتوفرة
+        const customerName = escapeHtml(order.name || order.customerName || "بدون اسم");
+        const customerEmail = escapeHtml(order.email || order.customerEmail || "غير متوفر");
+        const customerPhone = escapeHtml(order.phone || order.customerPhone || "غير متوفر");
+        const customerAddress = escapeHtml(order.address || "غير متوفر");
+        
+        // إنشاء جدول سلة المشتريات
+        let itemsTable = "";
+        if (order.items && order.items.length > 0) {
+          itemsTable = `
+            <table class="items-table">
+              <thead>
+                <tr>
+                  <th>المنتج</th>
+                  <th>الكمية</th>
+                  <th>السعر</th>
+                  <th>المجموع</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${order.items.map(item => `
+                  <tr>
+                    <td>${escapeHtml(item.name)}</td>
+                    <td>${item.quantity || 1}</td>
+                    <td>${item.price || 0} دج</td>
+                    <td>${(item.price || 0) * (item.quantity || 1)} دج</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          `;
+        } else {
+          itemsTable = "<p>لا توجد منتجات في هذه الطلبية</p>";
+        }
+
+        // إنشاء HTML للطلب
+        ordersHtml += `
+          <div class="order-card" data-order-id="${orderId}">
+            <div class="order-header">
+              <div>
+                <span class="order-id">طلب #${index + 1}</span>
+                <span class="status-badge status-new">جديد</span>
+              </div>
+              <div class="order-date">${orderDate}</div>
+            </div>
+            
+            <div class="customer-info">
+              <div class="info-group">
+                <span class="info-label">اسم العميل:</span>
+                <div class="info-value ${!order.name && !order.customerName ? 'unavailable' : ''}">
+                  ${customerName}
+                </div>
+              </div>
+              
+              <div class="info-group">
+                <span class="info-label">البريد الإلكتروني:</span>
+                <div class="info-value ${!order.email && !order.customerEmail ? 'unavailable' : ''}">
+                  ${customerEmail}
+                </div>
+              </div>
+              
+              <div class="info-group">
+                <span class="info-label">رقم الهاتف:</span>
+                <div class="info-value ${!order.phone && !order.customerPhone ? 'unavailable' : ''}">
+                  ${customerPhone}
+                </div>
+              </div>
+              
+              <div class="info-group">
+                <span class="info-label">العنوان:</span>
+                <div class="info-value ${!order.address ? 'unavailable' : ''}">
+                  ${customerAddress}
+                </div>
+              </div>
+            </div>
+            
+            <div class="order-summary">
+              <h3>سلة المشتريات</h3>
+              ${itemsTable}
+              
+              <div class="total-row">
+                <span>المجموع الكلي:</span>
+                <span>${order.total || 0} دج</span>
+              </div>
+              
+              <div class="total-row">
+                <span>النقاط المكتسبة:</span>
+                <span>${order.points || 0} نقطة</span>
+              </div>
+            </div>
+            
+            <div class="actions">
+              <button class="btn btn-email" onclick="sendEmail('${customerEmail}')">
+                <span>✉️</span> إرسال بريد
+              </button>
+              <button class="btn btn-call" onclick="makeCall('${customerPhone}')">
+                <span>📞</span> إجراء اتصال
+              </button>
+              <button class="btn btn-delete" onclick="deleteOrder('${orderId}')">
+                <span>🗑️</span> حذف الطلب
+              </button>
+            </div>
+          </div>
+        `;
+      });
+
+      container.innerHTML = ordersHtml;
+    }
+
+    // دالة لإرسال بريد إلكتروني
+    function sendEmail(email) {
+      if (!email || email === "غير متوفر") {
+        alert("لا يوجد بريد إلكتروني مسجل لهذا العميل");
+        return;
+      }
+      window.location.href = `mailto:${email}?subject=حول طلبك`;
+    }
+
+    // دالة لإجراء اتصال
+    function makeCall(phone) {
+      if (!phone || phone === "غير متوفر") {
+        alert("لا يوجد رقم هاتف مسجل لهذا العميل");
+        return;
+      }
+      window.location.href = `tel:${phone}`;
+    }
+
+    // دالة لحذف طلب
+    function deleteOrder(orderId) {
+      if (!confirm("هل أنت متأكد من حذف هذا الطلب؟ لا يمكن التراجع عن هذه العملية.")) {
+        return;
+      }
+      
+      const orders = JSON.parse(localStorage.getItem("orders")) || [];
+      const updatedOrders = orders.filter(order => order.id !== orderId && 
+        (!order.id && orderId !== `order-${Date.now()}-${orders.indexOf(order)}`));
+      
+      localStorage.setItem("orders", JSON.stringify(updatedOrders));
+      renderOrders();
+    }
+
+    // عند تحميل الصفحة، عرض الطلبات
+    document.addEventListener('DOMContentLoaded', renderOrders);
+  </script>
+</body>
+</html>
